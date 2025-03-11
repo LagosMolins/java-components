@@ -12,53 +12,46 @@ import java.util.logging.Logger;
 
 import programmingtheiot.common.ConfigConst;
 
-/**
- *
- */
+/* */
 public abstract class BaseSystemUtilTask
 {
 	// static
-	
-	private static final Logger _Logger =
-		Logger.getLogger(BaseSystemUtilTask.class.getName());
-	
-	
+	private static final Logger _Logger = Logger.getLogger(BaseSystemUtilTask.class.getName());
+		
 	// private
-	
 	private String name   = ConfigConst.NOT_SET;
 	private int    typeID = ConfigConst.DEFAULT_TYPE_ID;
 	
 	// constructors
-	
 	public BaseSystemUtilTask(String name, int typeID)
 	{
 		super();
+		if (name != null) {
+		this.name = name;
 	}
-	
+
+	this.typeID = typeID;
+	}
 	
 	// public methods
 	
 	public String getName()
 	{
-		return null;
+		return this.name;
 	}
 	
 	/**
 	 * Returns the type ID of the system utilization task.
-	 * 
 	 * @return int
 	 */
 	public int getTypeID()
 	{
-		return 0;
+		return this.typeID;
 	}
 	
 	/**
-	 * Template method definition. Sub-class will implement this to retrieve
-	 * the system utilization measure.
-	 * 
+	 * Template method definition. Sub-class will implement this to retrieve the system utilization measure.
 	 * @return float
 	 */
 	public abstract float getTelemetryValue();
-	
 }
