@@ -120,7 +120,7 @@ public class DataUtilTest
 	 * uncommenting the @Test attribute if SystemStateData is optionally implemented.
 	 * 
 	 */
-	
+	/*
 //	@Test
 	public void testSystemStateDatatoJsonAndBack()
 	{
@@ -141,5 +141,5 @@ public class DataUtilTest
 		assertTrue(data.getStatusCode() == data2.getStatusCode());
 		assertTrue(data.getCommand() == data2.getCommand());
 	}
-	
+	*/
 }

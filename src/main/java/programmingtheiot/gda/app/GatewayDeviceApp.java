@@ -8,95 +8,194 @@
  * provided within in order to meet the needs of your specific
  * Programming the Internet of Things project.
  */ 
+
 package programmingtheiot.gda.app;
 
-import programmingtheiot.gda.system.SystemPerformanceManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class GatewayDeviceApp {
-    // Logger para registrar los mensajes
-    private static final Logger logger = Logger.getLogger(GatewayDeviceApp.class.getName());
+import programmingtheiot.common.ConfigConst;
+import programmingtheiot.common.ConfigUtil;
+import programmingtheiot.gda.system.SystemPerformanceManager;
+/**
+ * Main GDA application.
+ * 
+ */
+public class GatewayDeviceApp
+{
+	// static
+	
+	
+	public static final long DEFAULT_TEST_RUNTIME = 60000L;
+	
+	// private var's
+	private static final Logger _Logger = Logger.getLogger(GatewayDeviceApp.class.getName());
+	
+	private SystemPerformanceManager sysPerfMgr =null;
 
-    private SystemPerformanceManager sysPerfMgr = null;
+	private DeviceDataManager dataMgr = null;
+	// constructors
+	
+	/**
+	 * Constructor.
+	 * 
+	 * @param args
+	 */
+	public GatewayDeviceApp(String[] args)
+	{
+		super();
+		
+		_Logger.info("Initializing GDA...");
+		
+		this.sysPerfMgr =new SystemPerformanceManager();
+	}
+	
+	
+	// static
+	
+	/**
+	 * Main application entry point.
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args)
+	{
+		GatewayDeviceApp gwApp = new GatewayDeviceApp(args);
+		
+		gwApp.startApp();
+		
+		// TODO: custom add to ConfigConst for convenience
+		boolean runForever =
+		ConfigUtil.getInstance().getBoolean(ConfigConst.GATEWAY_DEVICE,ConfigConst.ENABLE_RUN_FOREVER_KEY);
 
-    // Constructor que acepta un parámetro de tipo String[]
-    public GatewayDeviceApp(String[] args) {
-        super();
+		if (runForever) {
+			try {
+				// TODO: make the 2000L configurable
+				while (true) {
+					Thread.sleep(2000L);
+									}
+			}catch (InterruptedException e) {
+					// ignore
+								}
 
-        logger.info("Initializing GatewayDeviceApp...");
+					gwApp.stopApp(0);
+		}else {
+			try {
+			Thread.sleep(DEFAULT_TEST_RUNTIME);
+				}catch (InterruptedException e) {
+			// ignore
+						}
 
-        this.sysPerfMgr = new SystemPerformanceManager();
-    }
+			gwApp.stopApp(0);
+				}
+	
+	}
+	
+	
+	// public methods
+	
+	/**
+	 * Initializes and starts the application.
+	 * 
+	 */
+	public void startApp()
+	{
+		_Logger.info("Starting GDA...");
+		
+		try {
+			if (!ConfigUtil.getInstance().getBoolean(ConfigConst.GATEWAY_DEVICE,ConfigConst.TEST_EMPTY_APP_KEY)) {
+				this.dataMgr =new DeviceDataManager();
+							}
+				
+				if (this.dataMgr !=null) {
+				this.dataMgr.startManager();
+							}
 
-    // Método público que maneja la parada de la aplicación (sin usar System.exit())
-    public void stopApp(int code) {
-        logger.info("Stopping GDA...");
+			_Logger.info("GDA started successfully.");
+				
+		} catch (Exception e) {
+			_Logger.log(Level.SEVERE, "Failed to start GDA. Exiting.", e);
+			
+			stopApp(-1);
+		}
+	}
+	
+	/**
+	 * Stops the application.
+	 * 
+	 * @param code The exit code to pass to {@link System.exit()}
+	 */
+	public void stopApp(int code)
+	{
+		_Logger.info("Stopping GDA...");
+		
+		try {
+			if (this.dataMgr !=null) {
+			this.dataMgr.stopManager();
+						}	
+		_Logger.log(Level.INFO, "GDA stopped successfully with exit code {0}.", code);
 
-        try {
-            if (this.sysPerfMgr.stopManager()) {
-                logger.log(Level.INFO, "GDA stopped successfully with exit code {0}.", code);
-            } else {
-                logger.warning("Failed to stop system performance manager!");
-            }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to cleanly stop GDA.", e);
-        }
+		} catch (Exception e) {
+			_Logger.log(Level.SEVERE, "Failed to cleanly stop GDA. Exiting.", e);
+		}
+		
+		// Solo salir si no estamos en una prueba
+		if (!isRunningInTestMode()) {
+			System.exit(code);
+		}
+	}
+	
+	// Método para detectar si estamos en un entorno de prueba
+	private boolean isRunningInTestMode() {
+		return System.getProperty("surefire.test.class.path") != null;
+	}
+	// private methods
+	
+	/**
+	 * Load the config file.
+	 * 
+	 * NOTE: This will be added later.
+	 * 
+	 * @param configFile The name of the config file to load.
+	 */
+	private void initConfig(String configFile)
+	{
+		_Logger.log(Level.INFO, "Attempting to load configuration: {0}", (configFile != null ? configFile : "Default."));
+		
+		// TODO: Your code here
+	}
+	
+	/**
+	 * Parse any arguments passed in on app startup.
+	 * <p>
+	 * This method should be written to check if any valid command line args are provided,
+	 * including the name of the config file. Once parsed, call {@link #initConfig(String)}
+	 * with the name of the config file, or null if the default should be used.
+	 * <p>
+	 * If any command line args conflict with the config file, the config file
+	 * in-memory content should be overridden with the command line argument(s).
+	 * 
+	 * @param args The non-null and non-empty args array.
+	 */
+	private void parseArgs(String[] args)
+	{
+		String configFile = null;
+		
+		if (args != null) {
+			_Logger.log(Level.INFO, "Parsing {0} command line args.", args.length);
+			
+			for (String arg : args) {
+				if (arg != null) {
+					arg = arg.trim();
+					
+					// TODO: Your code here
+				}
+			}
+		} else {
+			_Logger.info("No command line args to parse.");
+		}
+		
+		initConfig(configFile);
+	}
 
-        // En lugar de System.exit(), solo se registra el código de salida
-        logger.info("GDA stopped successfully. Exit code: " + code);
-    }
-
-    // Método público que maneja el inicio de la aplicación
-    public void startApp() {
-        logger.info("Starting GDA...");
-
-        try {
-            if (this.sysPerfMgr.startManager()) {
-                logger.info("GDA started successfully.");
-            } else {
-                logger.warning("Failed to start system performance manager!");
-                stopApp(-1);
-            }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to start GDA. Exiting.", e);
-            stopApp(-1);
-        }
-    }
-
-    // Método privado para inicializar la configuración (por ahora vacío)
-    private void initConfig(String fileName) {
-        logger.info("Initializing configuration with file: " + fileName);
-
-        // Aquí se pueden agregar detalles adicionales para cargar el archivo de configuración
-        // Como está vacío, por ahora no hay ninguna acción.
-    }
-
-    // Método privado para analizar los argumentos
-    private void parseArgs(String[] args) {
-        logger.info("Parsing arguments...");
-
-        // Aquí se puede agregar la lógica para procesar los argumentos (si es necesario)
-        // Por ahora, solo llamamos a initConfig con null
-        initConfig(null);
-    }
-
-    // Método principal para ejecutar la aplicación
-    public static void main(String[] args) {
-        // Crear una instancia de GatewayDeviceApp
-        GatewayDeviceApp app = new GatewayDeviceApp(args);
-
-        // Llamar al método startApp() para iniciar la aplicación
-        app.startApp();
-
-        // Esperar 65 segundos
-        try {
-            Thread.sleep(65000);
-        } catch (InterruptedException e) {
-            logger.severe("Error occurred while waiting: " + e.getMessage());
-        }
-
-        // Llamar al método stopApp con código 0 después de 65 segundos
-        app.stopApp(0);
-    }
 }
