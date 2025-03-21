@@ -44,6 +44,9 @@ public class SystemPerformanceManager
     // Tasks for CPU and Memory utilization
     private SystemCpuUtilTask sysCpuUtilTask = null;
     private SystemMemUtilTask sysMemUtilTask = null;
+    private SystemDiskUtilTask sysDiskUtilTask = null;
+    private IDataMessageListener dataMsgListener;
+
 
     // Runnable task to be executed periodically
     private Runnable taskRunner = null;
@@ -66,6 +69,7 @@ public class SystemPerformanceManager
         this.schedExecSvc = Executors.newScheduledThreadPool(1);
         this.sysCpuUtilTask = new SystemCpuUtilTask();
         this.sysMemUtilTask = new SystemMemUtilTask();
+        this.sysDiskUtilTask = new SystemDiskUtilTask();
 
         // Define the task to be executed periodically
         this.taskRunner = () -> {
@@ -79,10 +83,17 @@ public class SystemPerformanceManager
         // Retrieve CPU and memory utilization values
         float cpuUtil = this.sysCpuUtilTask.getTelemetryValue();
         float memUtil = this.sysMemUtilTask.getTelemetryValue();
+        float diskUtil = this.sysDiskUtilTask.getTelemetryValue();
 
         // Log the utilization values
         logger.fine("CPU utilization: " + cpuUtil + "%, Mem utilization: " + memUtil + "%");
     }
+
+    public void setDataMessageListener(IDataMessageListener listener) {
+        this.dataMsgListener = listener;
+}
+
+
 
     // Method to start the manager and begin scheduled task execution
     public boolean startManager()
