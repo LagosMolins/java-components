@@ -9,8 +9,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import programmingtheiot.common.ConfigConst;
-import programmingtheiot.common.ResourceNameEnum;
 import programmingtheiot.gda.connection.MqttClientConnector;
+import programmingtheiot.common.ResourceNameEnum;
+
 
 public class MqttClientControlPacketTest {
     private static final Logger _Logger = 
