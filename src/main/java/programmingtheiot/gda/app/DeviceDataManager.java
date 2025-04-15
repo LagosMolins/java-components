@@ -25,6 +25,8 @@ import programmingtheiot.gda.connection.IPubSubClient;
 import programmingtheiot.gda.connection.IRequestResponseClient;
 import programmingtheiot.gda.system.SystemPerformanceManager;
 
+import programmingtheiot.gda.connection.MqttClientConnector;
+
 /**
  * Shell representation of class for student implementation.
  *
@@ -56,29 +58,28 @@ public class DeviceDataManager implements IDataMessageListener
 	// constructors
 	
 	public DeviceDataManager()
-	{
-		super();
-		ConfigUtil configUtil = ConfigUtil.getInstance();
+    {
+        super();
+        ConfigUtil configUtil = ConfigUtil.getInstance();
 
-		this.enableMqttClient =
-			configUtil.getBoolean(
-				ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_MQTT_CLIENT_KEY);
+        this.enableMqttClient =
+            configUtil.getBoolean(
+                ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_MQTT_CLIENT_KEY); 
 
-		this.enableCoapServer =
-			configUtil.getBoolean(
-				ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_COAP_SERVER_KEY);
+        this.enableCoapServer =
+            configUtil.getBoolean(
+                ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_COAP_SERVER_KEY);
 
-		this.enableCloudClient =
-			configUtil.getBoolean(
-				ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_CLOUD_CLIENT_KEY);
+        this.enableCloudClient =
+            configUtil.getBoolean(
+                ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_CLOUD_CLIENT_KEY);
 
-		this.enablePersistenceClient =
-			configUtil.getBoolean(
-				ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_PERSISTENCE_CLIENT_KEY);
+        this.enablePersistenceClient =
+            configUtil.getBoolean(
+                ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_PERSISTENCE_CLIENT_KEY);
 
-		initManager();
-	
-	}
+        initManager();
+    }
 	
 	
 
@@ -123,15 +124,32 @@ public class DeviceDataManager implements IDataMessageListener
 	}
 
 	@Override
-	public boolean handleIncomingMessage(ResourceNameEnum resourceName, String msg)
+    public boolean handleIncomingMessage(ResourceNameEnum resourceName, String msg)
 	{
-		if (msg != null) {
-			_Logger.info("Handling incoming generic message: " + msg);
-	
-			return true;
-		} else {
+			if (msg != null) {
+				_Logger.info("Handling incoming message from " + resourceName.getResourceName() + ": " + msg);
+				
+				// Aquí puedes añadir lógica específica para cada tipo de mensaje
+				switch (resourceName) {
+					case CDA_SENSOR_MSG_RESOURCE:
+						// Procesar mensaje de sensor
+						break;
+					case CDA_ACTUATOR_RESPONSE_RESOURCE:
+						// Procesar respuesta de actuador
+						break;
+					case GDA_MGMT_STATUS_MSG_RESOURCE:
+						// Procesar mensaje de estado
+						break;
+					case CDA_SYSTEM_PERF_MSG_RESOURCE:
+						// Procesar datos de rendimiento
+						break;
+					default:
+						_Logger.warning("Unknown resource: " + resourceName);
+				}
+				
+				return true;
+			}
 			return false;
-		}
 	}
 
 	@Override
@@ -168,14 +186,31 @@ public class DeviceDataManager implements IDataMessageListener
 	
 	public void setActuatorDataListener(String name, IActuatorDataListener listener)
 	{
+		this.actuatorDataListener = listener;
 	}
 	
 	public void startManager()
 	{
-		if (this.sysPerfMgr != null) {
-			this.sysPerfMgr.startManager();
-		}
+		if (this.mqttClient != null) {
+            if (this.mqttClient.connectClient()) {
+                _Logger.info("Successfully connected MQTT client to broker.");
 
+                int qos = ConfigConst.DEFAULT_QOS;
+                
+                // Suscripciones MQTT
+                this.mqttClient.subscribeToTopic(
+                    ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE, qos);
+                this.mqttClient.subscribeToTopic(
+                    ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE, qos);
+                this.mqttClient.subscribeToTopic(
+                    ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE, qos);
+                this.mqttClient.subscribeToTopic(
+                    ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE, qos);
+            } else {
+                _Logger.severe("Failed to connect MQTT client to broker.");
+			}
+
+		}
 	}
 	
 	public void stopManager()
@@ -183,8 +218,26 @@ public class DeviceDataManager implements IDataMessageListener
 		if (this.sysPerfMgr != null) {
 			this.sysPerfMgr.stopManager();
 		}
+		if (this.mqttClient != null) {
+            // Cancelar suscripciones
+            this.mqttClient.unsubscribeFromTopic(
+                ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE);
+            this.mqttClient.unsubscribeFromTopic(
+                ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE);
+            this.mqttClient.unsubscribeFromTopic(
+                ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE);
+            this.mqttClient.unsubscribeFromTopic(
+                ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE);
 
-	}
+            if (this.mqttClient.disconnectClient()) {
+                _Logger.info("Successfully disconnected MQTT client from broker.");
+            } else {
+                _Logger.severe("Failed to disconnect MQTT client from broker.");
+            }
+        }
+    }
+
+
 
 	
 	// private methods
@@ -199,33 +252,34 @@ public class DeviceDataManager implements IDataMessageListener
 	}
 	
 	private void initManager()
-	{
-		ConfigUtil configUtil = ConfigUtil.getInstance();
-	
-		this.enableSystemPerf =
-			configUtil.getBoolean(ConfigConst.GATEWAY_DEVICE,  ConfigConst.ENABLE_SYSTEM_PERF_KEY);
-	
-		if (this.enableSystemPerf) {
-			this.sysPerfMgr = new SystemPerformanceManager();
-			this.sysPerfMgr.setDataMessageListener(this);
-		}
-	
-		if (this.enableMqttClient) {
-			// TODO: implement this in Lab Module 7
-		}
-	
-		if (this.enableCoapServer) {
-			// TODO: implement this in Lab Module 8
-		}
-	
-		if (this.enableCloudClient) {
-			// TODO: implement this in Lab Module 10
-		}
-	
-		if (this.enablePersistenceClient) {
-			// TODO: implement this as an optional exercise in Lab Module 5
-		}
-	}
+    {
+        ConfigUtil configUtil = ConfigUtil.getInstance();
+    
+        this.enableSystemPerf =
+            configUtil.getBoolean(ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_SYSTEM_PERF_KEY);
+    
+        if (this.enableSystemPerf) {
+            this.sysPerfMgr = new SystemPerformanceManager();
+            this.sysPerfMgr.setDataMessageListener(this);
+        }
+    
+        if (this.enableMqttClient) {
+            this.mqttClient = new MqttClientConnector();
+            this.mqttClient.setDataMessageListener(this);
+        }
+    
+        if (this.enableCoapServer) {
+            // TODO: implement this in Lab Module 8
+        }
+    
+        if (this.enableCloudClient) {
+            // TODO: implement this in Lab Module 10
+        }
+    
+        if (this.enablePersistenceClient) {
+            // TODO: implement this as an optional exercise in Lab Module 5
+        }
+    }
 
 	private void handleIncomingDataAnalysis(ResourceNameEnum resourceName, ActuatorData data)
 	{
