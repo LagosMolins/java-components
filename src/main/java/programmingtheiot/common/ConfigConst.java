@@ -57,6 +57,10 @@ public class ConfigConst
 	public static final String GATEWAY_SERVICE    = GATEWAY + SERVICE;
 	public static final String CLOUD_SERVICE      = CLOUD + SERVICE;
 
+	public static final String CLIENT_ID_KEY = "clientID";
+	public static final String USER_NAME_KEY = "userName";
+	
+
 	/*****
 	 * Property Names
 	 */
@@ -225,6 +229,7 @@ public class ConfigConst
 	public static final String OPCUA_GATEWAY_SERVICE = OPCUA   + "." + GATEWAY_SERVICE;
 	public static final String SMTP_GATEWAY_SERVICE  = SMTP    + "." + GATEWAY_SERVICE;
 	public static final String DATA_GATEWAY_SERVICE  = DATA    + "." + GATEWAY_SERVICE;
+
 
 	public static final String FROM_ADDRESS_KEY     = "fromAddr";
 	public static final String TO_ADDRESS_KEY       = "toAddr";
