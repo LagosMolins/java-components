@@ -26,6 +26,8 @@ import programmingtheiot.gda.connection.IRequestResponseClient;
 import programmingtheiot.gda.system.SystemPerformanceManager;
 
 import programmingtheiot.gda.connection.MqttClientConnector;
+import programmingtheiot.gda.connection.handlers.UpdateSystemPerformanceResourceHandler;
+import programmingtheiot.gda.connection.handlers.UpdateTelemetryResourceHandler;
 
 /**
  * Shell representation of class for student implementation.
@@ -46,6 +48,7 @@ public class DeviceDataManager implements IDataMessageListener
 	private boolean enableSmtpClient = false;
 	private boolean enablePersistenceClient = false;
 	private boolean enableSystemPerf = false;
+	
 
 	private IActuatorDataListener actuatorDataListener = null;
 	private IPubSubClient mqttClient = null;
@@ -54,6 +57,10 @@ public class DeviceDataManager implements IDataMessageListener
 	private IRequestResponseClient smtpClient = null;
 	private CoapServerGateway coapServer = null;
 	private SystemPerformanceManager sysPerfMgr = null;
+
+	private IDataMessageListener dataMsgListener;
+
+
 
 	// constructors
 	
@@ -192,24 +199,45 @@ public class DeviceDataManager implements IDataMessageListener
 	public void startManager()
 	{
 		if (this.mqttClient != null) {
-            if (this.mqttClient.connectClient()) {
-                _Logger.info("Successfully connected MQTT client to broker.");
+			if (this.mqttClient.connectClient()) {
+				_Logger.info("Successfully connected MQTT client to broker.");
 
-                int qos = ConfigConst.DEFAULT_QOS;
-                
-                // Suscripciones MQTT
-                this.mqttClient.subscribeToTopic(
-                    ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE, qos);
-                this.mqttClient.subscribeToTopic(
-                    ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE, qos);
-                this.mqttClient.subscribeToTopic(
-                    ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE, qos);
-                this.mqttClient.subscribeToTopic(
-                    ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE, qos);
-            } else {
-                _Logger.severe("Failed to connect MQTT client to broker.");
+				int qos = ConfigConst.DEFAULT_QOS;
+				
+				this.mqttClient.subscribeToTopic(
+					ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE, qos);
+				this.mqttClient.subscribeToTopic(
+					ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE, qos);
+				this.mqttClient.subscribeToTopic(
+					ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE, qos);
+				this.mqttClient.subscribeToTopic(
+					ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE, qos);
+			} else {
+				_Logger.severe("Failed to connect MQTT client to broker.");
 			}
 
+		if (this.coapServerGateway != null) {
+			// Para SystemPerformance
+			UpdateSystemPerformanceResourceHandler sysPerfHandler = 
+				this.coapServerGateway.getHandler(
+					ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE);
+			sysPerfHandler.setDataMessageListener(this);
+			
+			// Para Telemetría
+			UpdateTelemetryResourceHandler telemetryHandler = 
+				this.coapServerGateway.getHandler(
+					ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE);
+			telemetryHandler.setDataMessageListener(this);
+		}
+
+		}
+
+		if (this.enableCoapServer && this.coapServer != null) {
+			if (this.coapServer.startServer()) {
+				_Logger.info("CoAP server started successfully.");
+			} else {
+				_Logger.warning("Failed to start CoAP server.");
+			}
 		}
 	}
 	
@@ -218,24 +246,32 @@ public class DeviceDataManager implements IDataMessageListener
 		if (this.sysPerfMgr != null) {
 			this.sysPerfMgr.stopManager();
 		}
+		
 		if (this.mqttClient != null) {
-            // Cancelar suscripciones
-            this.mqttClient.unsubscribeFromTopic(
-                ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE);
-            this.mqttClient.unsubscribeFromTopic(
-                ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE);
-            this.mqttClient.unsubscribeFromTopic(
-                ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE);
-            this.mqttClient.unsubscribeFromTopic(
-                ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE);
+			this.mqttClient.unsubscribeFromTopic(
+				ResourceNameEnum.GDA_MGMT_STATUS_MSG_RESOURCE);
+			this.mqttClient.unsubscribeFromTopic(
+				ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE);
+			this.mqttClient.unsubscribeFromTopic(
+				ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE);
+			this.mqttClient.unsubscribeFromTopic(
+				ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE);
 
-            if (this.mqttClient.disconnectClient()) {
-                _Logger.info("Successfully disconnected MQTT client from broker.");
-            } else {
-                _Logger.severe("Failed to disconnect MQTT client from broker.");
-            }
-        }
-    }
+			if (this.mqttClient.disconnectClient()) {
+				_Logger.info("Successfully disconnected MQTT client from broker.");
+			} else {
+				_Logger.severe("Failed to disconnect MQTT client from broker.");
+			}
+		}
+
+		if (this.enableCoapServer && this.coapServer != null) {
+			if (this.coapServer.stopServer()) {
+				_Logger.info("CoAP server stopped successfully.");
+			} else {
+				_Logger.warning("Failed to stop CoAP server.");
+			}
+		}
+	}
 
 
 
@@ -269,8 +305,9 @@ public class DeviceDataManager implements IDataMessageListener
         }
     
         if (this.enableCoapServer) {
-            // TODO: implement this in Lab Module 8
-        }
+			this.coapServer = new CoapServerGateway(this);
+			_Logger.info("CoAP server initialized.");
+		}
     
         if (this.enableCloudClient) {
             // TODO: implement this in Lab Module 10
@@ -293,4 +330,10 @@ public class DeviceDataManager implements IDataMessageListener
 	{
 	}
 
+	public void setDataMessageListener(IDataMessageListener listener)
+	{
+		if (listener != null) {
+			this.dataMsgListener = listener;
+		}
+	}
 }
