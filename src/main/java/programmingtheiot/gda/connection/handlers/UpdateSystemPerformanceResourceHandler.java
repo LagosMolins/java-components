@@ -19,7 +19,7 @@ public class UpdateSystemPerformanceResourceHandler extends CoapResource {
     // private
     private IDataMessageListener dataMsgListener = null;
     
-    // constructors
+    // constructor
     public UpdateSystemPerformanceResourceHandler(String resourceName) {
         super(resourceName);
     }
