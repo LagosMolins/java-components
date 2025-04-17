@@ -19,7 +19,7 @@ public class UpdateTelemetryResourceHandler extends CoapResource {
     // private
     private IDataMessageListener dataMsgListener = null;
     
-    // constructors
+    // constructor
     public UpdateTelemetryResourceHandler(String resourceName) {
         super(resourceName);
     }
