@@ -11,6 +11,7 @@
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 	</properties>
+	
 	<repositories>
 		<repository>
 			<id>project.local</id>
@@ -52,15 +53,31 @@
 			<version>1.2.5</version>
 		</dependency>
 		<dependency>
-			<groupId>org.eclipse.californium</groupId>
-			<artifactId>californium-core</artifactId>
-			<version>3.12.1</version>
-		</dependency>
+    <groupId>org.eclipse.californium</groupId>
+    <artifactId>californium-core</artifactId>
+    <version>2.0.0</version>
+  </dependency>
 		<dependency>
 			<groupId>org.eclipse.californium</groupId>
 			<artifactId>scandium</artifactId>
 			<version>3.12.1</version>
 		</dependency>
+		<!-- JUnit 5 -->
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <version>5.9.2</version>
+    <scope>test</scope>
+</dependency>
+
+<!-- Mockito -->
+<dependency>
+    <groupId>org.mockito</groupId>
+    <artifactId>mockito-core</artifactId>
+    <version>5.2.0</version>
+    <scope>test</scope>
+</dependency>
+
 		
 		<!--
 			NOTE: These dependencies are optional for use
