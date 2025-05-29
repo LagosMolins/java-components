@@ -3,12 +3,16 @@ package programmingtheiot.gda.connection.handlers;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.eclipse.californium.core.coap.CoapExchange;
+import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import programmingtheiot.common.data.ActuatorData;
-import programmingtheiot.common.util.DataUtil;
+import programmingtheiot.data.ActuatorData;
+import programmingtheiot.data.DataUtil;
+
+import programmingtheiot.gda.connection.handlers.GetActuatorCommandResourceHandler;
+
+
 
 public class GetActuatorCommandResourceHandlerTest {
     private GetActuatorCommandResourceHandler handler;
@@ -20,7 +24,7 @@ public class GetActuatorCommandResourceHandlerTest {
         handler = new GetActuatorCommandResourceHandler("testResource");
         mockExchange = mock(CoapExchange.class);
         testData = new ActuatorData();
-        testData.setValue(50.0);
+        testData.setValue(50.0f);
     }
 
     @Test

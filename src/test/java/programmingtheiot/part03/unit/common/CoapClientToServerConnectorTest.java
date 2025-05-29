@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import programmingtheiot.common.ResourceNameEnum;
-import programmingtheiot.common.DataUtil;
+import programmingtheiot.data.DataUtil;
 import programmingtheiot.data.SystemPerformanceData;
 import programmingtheiot.data.SensorData;
 

@@ -2,12 +2,12 @@ package programmingtheiot.gda.connection.handlers;
 
 import java.util.logging.Logger;
 
-import org.eclipse.californium.core.coap.CoapExchange;
+import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.CoapResource;
-import programmingtheiot.common.data.ActuatorData;
-import programmingtheiot.common.interfaces.IActuatorDataListener;
-import programmingtheiot.common.util.DataUtil;
+import programmingtheiot.data.ActuatorData;
+import programmingtheiot.common.IActuatorDataListener;
+import programmingtheiot.data.DataUtil;
 
 public class GetActuatorCommandResourceHandler extends CoapResource implements IActuatorDataListener {
 
