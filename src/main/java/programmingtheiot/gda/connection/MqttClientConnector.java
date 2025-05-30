@@ -21,12 +21,25 @@ import programmingtheiot.common.ResourceNameEnum;
 
 import programmingtheiot.gda.connection.IConnectionListener;
 
+import java.io.File;
+import javax.net.ssl.SSLSocketFactory;
+
+import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
+
+import programmingtheiot.common.SimpleCertManagementUtil;
+import programmingtheiot.data.ActuatorData;
+import programmingtheiot.data.DataUtil;
+import programmingtheiot.data.SensorData;
+import programmingtheiot.data.SystemPerformanceData;
+
 
 public class MqttClientConnector implements IPubSubClient, MqttCallbackExtended {
     private static final Logger _Logger = Logger.getLogger(MqttClientConnector.class.getName());
     
+    private MqttAsyncClient      mqttClient = null;
+    //private MqttClient           mqttClient = null;
     private boolean useAsyncClient = false;
-    private MqttClient mqttClient = null;
     private MqttConnectOptions connOpts = null;
     private MemoryPersistence persistence = null;
     private IDataMessageListener dataMsgListener = null;
@@ -38,9 +51,21 @@ public class MqttClientConnector implements IPubSubClient, MqttCallbackExtended 
     private int port = ConfigConst.DEFAULT_MQTT_PORT;
     private int brokerKeepAlive = ConfigConst.DEFAULT_KEEP_ALIVE;
     
+    // params
+	
+	private String pemFileName = null;
+	private boolean enableEncryption = false;
+	private boolean useCleanSession = false;
+	private boolean enableAutoReconnect = true;
+
+	private IConnectionListener connListener =null;
+	private boolean useCloudGatewayConfig =false;
+
     public MqttClientConnector()
     {
         super();
+        
+        initClientParameters(ConfigConst.MQTT_GATEWAY_SERVICE);
         
         ConfigUtil configUtil = ConfigUtil.getInstance();
         
@@ -78,27 +103,127 @@ public class MqttClientConnector implements IPubSubClient, MqttCallbackExtended 
         return this.mqttClient != null && this.mqttClient.isConnected();
     }
     
-    @Override
-    public boolean connectClient()
-    {
-        try {
-            if (this.mqttClient == null) {
-                this.mqttClient = new MqttClient(this.brokerAddr, this.clientID, this.persistence);
-                this.mqttClient.setCallback(this);
+
+    private void initClientParameters(String configSectionName)
+        {
+            ConfigUtil configUtil = ConfigUtil.getInstance();
+
+            this.host = configUtil.getProperty(configSectionName, ConfigConst.HOST_KEY, ConfigConst.DEFAULT_HOST);
+            this.port = configUtil.getInteger(configSectionName, ConfigConst.PORT_KEY, ConfigConst.DEFAULT_MQTT_PORT);
+            this.brokerKeepAlive = configUtil.getInteger(configSectionName, ConfigConst.KEEP_ALIVE_KEY, ConfigConst.DEFAULT_KEEP_ALIVE);
+            this.enableEncryption = configUtil.getBoolean(configSectionName, ConfigConst.ENABLE_CRYPT_KEY);
+            this.pemFileName = configUtil.getProperty(configSectionName, ConfigConst.CERT_FILE_KEY);
+
+
+            this.useAsyncClient = configUtil.getBoolean(ConfigConst.MQTT_GATEWAY_SERVICE, ConfigConst.USE_ASYNC_CLIENT_KEY);
+
+            this.clientID = configUtil.getProperty(ConfigConst.GATEWAY_DEVICE, ConfigConst.DEVICE_LOCATION_ID_KEY, MqttClient.generateClientId());
+
+            this.persistence = new MemoryPersistence();
+            this.connOpts    = new MqttConnectOptions();
+
+            this.connOpts.setKeepAliveInterval(this.brokerKeepAlive);
+            this.connOpts.setCleanSession(this.useCleanSession);
+            this.connOpts.setAutomaticReconnect(this.enableAutoReconnect);
+
+            if (this.enableEncryption) {
+                initSecureConnectionParameters(configSectionName);
             }
 
-            if (!this.mqttClient.isConnected()) {
-                _Logger.info("MQTT client connecting to broker: " + this.brokerAddr);
-                this.mqttClient.connect(this.connOpts);
-                return true;
-            } else {
-                _Logger.warning("MQTT client already connected to broker: " + this.brokerAddr);
+            if (configUtil.hasProperty(configSectionName, ConfigConst.CRED_FILE_KEY)) {
+                initCredentialConnectionParameters(configSectionName);
             }
-        } catch (MqttException e) {
-            _Logger.log(Level.SEVERE, "Failed to connect MQTT client to broker.", e);
+
+            this.brokerAddr  = this.protocol + "://" + this.host + ":" + this.port;
+
+            _Logger.info("Using URL for broker conn: " + this.brokerAddr);
         }
-        return false;
-    }
+
+
+    private void initCredentialConnectionParameters(String configSectionName)
+	{
+		ConfigUtil configUtil = ConfigUtil.getInstance();
+
+		try {
+			_Logger.info("Checking if credentials file exists and is loadable...");
+
+			Properties props = configUtil.getCredentials(configSectionName);
+
+			if (props != null) {
+				this.connOpts.setUserName(props.getProperty(ConfigConst.USER_NAME_TOKEN_KEY, ""));
+				this.connOpts.setPassword(props.getProperty(ConfigConst.USER_AUTH_TOKEN_KEY, "").toCharArray());
+
+				_Logger.info("Credentials now set.");
+			} else {
+				_Logger.warning("No credentials are set.");
+			}
+		} catch (Exception e) {
+			_Logger.log(Level.WARNING, "Credential file non-existent. Disabling auth requirement.");
+		}
+
+	}
+
+    private void initSecureConnectionParameters(String configSectionName)
+        {
+            ConfigUtil configUtil = ConfigUtil.getInstance();
+
+            try {
+                _Logger.info("Configuring TLS...");
+
+                if (this.pemFileName != null) {
+                    File file = new File(this.pemFileName);
+
+                    if (file.exists()) {
+                        _Logger.info("PEM file valid. Using secure connection: " + this.pemFileName);
+                    } else {
+                        this.enableEncryption = false;
+
+                        _Logger.log(Level.WARNING, "PEM file invalid. Using insecure connection: " + this.pemFileName, new Exception());
+
+                        return;
+                    }
+                }
+
+                SSLSocketFactory sslFactory = SimpleCertManagementUtil.getInstance().loadCertificate(this.pemFileName);
+
+                this.connOpts.setSocketFactory(sslFactory);
+
+                this.port = configUtil.getInteger(configSectionName, ConfigConst.SECURE_PORT_KEY, ConfigConst.DEFAULT_MQTT_SECURE_PORT);
+
+                this.protocol = ConfigConst.DEFAULT_MQTT_SECURE_PROTOCOL;
+
+                _Logger.info("TLS enabled.");
+            } catch (Exception e) {
+                _Logger.log(Level.SEVERE, "Failed to initialize secure MQTT connection. Using insecure connection.", e);
+
+                this.enableEncryption = false;
+            }
+	    }
+
+        @Override
+        public boolean connectClient()
+        {
+            try {
+                if (this.mqttClient == null) {
+                    //this.mqttClient = new MqttClient(this.brokerAddr, this.clientID, this.persistence);
+                    this.mqttClient = new MqttAsyncClient(this.brokerAddr, this.clientID, this.persistence);
+                    this.mqttClient.setCallback(this);
+                }
+    
+                if (! this.mqttClient.isConnected()) {
+                    _Logger.info("MQTT client connecting to broker: " + this.brokerAddr);
+                    this.mqttClient.connect(this.connOpts);
+                    return true;
+                } else {
+                    _Logger.warning("MQTT client already connected to broker: " + this.brokerAddr);
+                }
+            } catch (MqttException e) {
+                // TODO: handle this exception
+                _Logger.log(Level.SEVERE, "Failed to connect MQTT client to broker.", e);
+            }
+    
+            return false;
+        }
 
     @Override
     public boolean disconnectClient()
@@ -194,10 +319,24 @@ public class MqttClientConnector implements IPubSubClient, MqttCallbackExtended 
     }
 
     @Override
-    public void connectComplete(boolean reconnect, String serverURI)
-    {
-        _Logger.info("MQTT connection successful (is reconnect = " + reconnect + "). Broker: " + serverURI);
-    }
+	public void connectComplete(boolean reconnect, String serverURI)
+	{
+		_Logger.info("MQTT connection successful (is reconnect = " + reconnect + "). Broker: " + serverURI);
+
+		int qos = 1;
+
+		if (!this.useCloudGatewayConfig) {
+			this.subscribeToTopic(ResourceNameEnum.CDA_ACTUATOR_RESPONSE_RESOURCE, qos);
+			this.subscribeToTopic(ResourceNameEnum.CDA_SENSOR_MSG_RESOURCE, qos);
+			this.subscribeToTopic(ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE, qos);
+		}
+
+
+		if (this.connListener != null) {
+			this.connListener.onConnect();
+		}
+		
+	}
 
     @Override
     public void connectionLost(Throwable t)
