@@ -69,6 +69,20 @@ public class SystemPerformanceData extends BaseIotData implements Serializable
 		updateTimeStamp();
 		this.memUtil = val;
 	}
+
+
+	public void setCpuUtil(float cpuUtil) {
+		this.cpuUtil = cpuUtil;
+	}
+	
+	public void setDiskUtil(float diskUtil) {
+		this.diskUtil = diskUtil;
+	}
+	
+	public void setMemUtil(float memUtil) {
+		this.memUtil = memUtil;
+	}
+	
 	
 	/**
 	 * Returns a string representation of this instance. This will invoke the base class

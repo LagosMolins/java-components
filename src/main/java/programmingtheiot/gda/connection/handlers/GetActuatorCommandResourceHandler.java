@@ -2,7 +2,7 @@ package programmingtheiot.gda.connection.handlers;
 
 import java.util.logging.Logger;
 
-import org.eclipse.californium.core.coap.CoapExchange;
+import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.CoapResource;
 import programmingtheiot.data.ActuatorData;
