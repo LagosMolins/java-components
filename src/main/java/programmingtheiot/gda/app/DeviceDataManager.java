@@ -126,7 +126,8 @@ import programmingtheiot.data.SensorData;
 		 this.enableSmtpClient = enableSmtpClient;
 		 this.enablePersistenceClient = enablePersistenceClient;
 		 
-		 initManager();
+		 
+		 initConnections();
 	 }
 	 
 	 // public methods
@@ -334,50 +335,7 @@ import programmingtheiot.data.SensorData;
  
 	 // private methods
 	 
-	 private void initManager()
-	 {
-		 ConfigUtil configUtil = ConfigUtil.getInstance();
-	 
-		 this.enableSystemPerf =
-			 configUtil.getBoolean(ConfigConst.GATEWAY_DEVICE, ConfigConst.ENABLE_SYSTEM_PERF_KEY);
-	 
-		 if (this.enableSystemPerf) {
-			 this.sysPerfMgr = new SystemPerformanceManager();
-			 this.sysPerfMgr.setDataMessageListener(this);
-		 }
-	 
-		 if (this.enableMqttClient) {
-			 this.mqttClient = new MqttClientConnector();
-			 this.mqttClient.setDataMessageListener(this);
-		 }
-	 
-		 if (this.enableCoapServer) {
-			 this.coapServer = new CoapServerGateway(this);
-			 _Logger.info("CoAP server initialized.");
-		 }
-	 
-		 if (this.enableCloudClient) {
-			 // TODO: implement this in Lab Module 10
-		 }
-	 
-		 if (this.enablePersistenceClient) {
-			 // TODO: implement this as an optional exercise in Lab Module 5
-		 }
-	 }
- 
-	 private void handleIncomingDataAnalysis(ResourceNameEnum resourceName, ActuatorData data)
-	 {
-		 _Logger.info("Analyzing incoming actuator data: " + data.getName());
- 
-		 if (data.isResponseFlagEnabled()) {
-			 // TODO: implement this for response handling
-		 } else {
-			 if (this.actuatorDataListener != null) {
-				 this.actuatorDataListener.onActuatorDataUpdate(data);
-			 }
-		 }
-	 }
- 
+	
 	 private void handleIncomingDataAnalysis(ResourceNameEnum resource,SensorData data)
 	{
 		if (data.getTypeID() ==ConfigConst.HUMIDITY_SENSOR_TYPE) {
@@ -496,11 +454,52 @@ import programmingtheiot.data.SensorData;
 
 
  
-	 public void setDataMessageListener(IDataMessageListener listener)
-	 {
-		 if (listener != null) {
-			 this.dataMsgListener = listener;
-		 }
-	 }
+	
+
+	 // private methods
+	
+	/**
+	 * Initializes the enabled connections. This will NOT start them, but only create the
+	 * instances that will be used in the {@link #startManager() and #stopManager()) methods.
+	 * 
+	 */
+	private void initConnections()
+	{
+	}
+
+	private void initManager()
+	{
+		ConfigUtil configUtil = ConfigUtil.getInstance();
+
+		this.enableSystemPerf =
+			configUtil.getBoolean(ConfigConst.GATEWAY_DEVICE,  ConfigConst.ENABLE_SYSTEM_PERF_KEY);
+
+		if (this.enableSystemPerf) {
+			this.sysPerfMgr = new SystemPerformanceManager();
+			this.sysPerfMgr.setDataMessageListener(this);
+		}
+
+		// NOTE: This is new - creating the MQTT client connector instance
+		if (this.enableMqttClient) {
+			this.mqttClient = new MqttClientConnector();
+
+			// NOTE: The next line isn't technically needed until Lab Module 10
+			this.mqttClient.setDataMessageListener(this);
+		}
+
+		if (this.enableCoapServer) {
+			// TODO: implement this in Lab Module 8
+			this.coapServer = new CoapServerGateway(this);
+		}
+
+		if (this.enableCloudClient) {
+			// TODO: implement this in Lab Module 10
+		}
+
+		if (this.enablePersistenceClient) {
+			// TODO: implement this as an optional exercise in Lab Module 5
+		}
+	}
+	
  }
 

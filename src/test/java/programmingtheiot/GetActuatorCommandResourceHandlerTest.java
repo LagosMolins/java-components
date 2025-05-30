@@ -5,8 +5,8 @@ import org.eclipse.californium.core.coap.CoapExchange;
 import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import programmingtheiot.common.data.ActuatorData;
-import programmingtheiot.common.util.DataUtil;
+import programmingtheiot.data.ActuatorData;
+import programmingtheiot.data.DataUtil;
 
 public class GetActuatorCommandResourceHandlerTest {
     private GetActuatorCommandResourceHandler handler;
